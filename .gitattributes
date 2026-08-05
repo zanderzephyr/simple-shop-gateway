@@ -1,0 +1,24 @@
+# Text
+.classpath			text eol=lf
+.gitattributes		text eol=lf
+.gitignore			text eol=lf
+*.java				text eol=lf
+*.gradle			text eol=lf
+*.json				text eol=lf
+*.md				text eol=lf
+*.prefs				text eol=lf
+*.project			text eol=lf
+*.properties		text eol=lf
+*.txt				text eol=lf
+*.xml				text eol=lf
+*.yaml				text eol=lf
+*.yml				text eol=lf
+
+# OS-native scripts
+*.bat				text eol=crlf
+gradlew				text eol=lf
+
+# Binaries
+*.jar				binary
+*.jpg				binary
+*.png				binary
