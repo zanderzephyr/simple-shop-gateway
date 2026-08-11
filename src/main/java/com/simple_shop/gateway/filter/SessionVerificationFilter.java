@@ -1,9 +1,15 @@
 package com.simple_shop.gateway.filter;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpCookie;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -14,9 +20,17 @@ import com.simple_shop.gateway.service.auth_service.AuthService;
 
 import reactor.core.publisher.Mono;
 
+/**
+ * This filter uses a white list approach, that has the basic assumption, no
+ * access-restricted endpoint is located under a public endpoint. All services
+ * have to respect that rule and move their access-restricted endpoints to a
+ * specific domain or make sure, the white-listing approach doesn't undermine
+ * their security.
+ */
 @Component
 public final class SessionVerificationFilter implements GlobalFilter, Ordered {
-	private static final String LOGIN_PATH = "/api/auth/v1/user/login";
+	private static final Map<HttpMethod, Set<String>> REQUEST_WHITE_LIST = SessionVerificationFilter
+			.collectRequestWhiteList();
 
 	private static final String COOKIE_NAME = "session_id";
 
@@ -30,13 +44,25 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 		this.authService = authService;
 	}
 
+	private static Map<HttpMethod, Set<String>> collectRequestWhiteList() {
+		final Map<HttpMethod, Set<String>> whiteList = new HashMap<>();
+
+		final Set<String> getWhiteList = new HashSet<>();
+		getWhiteList.add("/api/items/v1");
+		whiteList.put(HttpMethod.GET, getWhiteList);
+
+		final Set<String> postWhiteList = new HashSet<>();
+		postWhiteList.add("/api/auth/v1/user/login");
+		whiteList.put(HttpMethod.POST, postWhiteList);
+
+		return whiteList;
+	}
+
 	@Override
 	public Mono<Void> filter(final ServerWebExchange exchange, final GatewayFilterChain chain) {
 		final ServerHttpRequest request = exchange.getRequest();
-		final String path = request.getURI().getPath();
 
-		// Do not stop a login request, as no session exists yet.
-		if (SessionVerificationFilter.LOGIN_PATH.equals(path)) {
+		if (this.isWhiteListedRequest(request)) {
 			return chain.filter(exchange);
 		}
 
@@ -66,6 +92,23 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 
 			return chain.filter(exchange.mutate().request(mutatedRequest).build());
 		});
+	}
+
+	private boolean isWhiteListedRequest(final ServerHttpRequest request) {
+		final String path = request.getURI().getPath();
+		final Set<String> publicPaths = SessionVerificationFilter.REQUEST_WHITE_LIST.get(request.getMethod());
+		if (publicPaths != null) {
+			if (publicPaths.contains(path)) {
+				return Boolean.TRUE;
+			}
+
+			for (final String publicPath : publicPaths) {
+				if (path.startsWith(publicPath)) {
+					return Boolean.TRUE;
+				}
+			}
+		}
+		return Boolean.FALSE;
 	}
 
 	private Mono<Void> handleUnauthorized(final ServerWebExchange exchange) {
