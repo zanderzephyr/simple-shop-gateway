@@ -26,7 +26,7 @@ public class DevCorsConfig {
 		// Default Angular dev server port
 		config.setAllowedOrigins(List.of("http://localhost:4200"));
 		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
-		config.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-Requested-With"));
+		config.setAllowedHeaders(List.of("Content-Type"));
 		config.setAllowCredentials(Boolean.TRUE);
 
 		final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
