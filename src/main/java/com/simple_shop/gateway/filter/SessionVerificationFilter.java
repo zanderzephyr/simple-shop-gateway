@@ -20,17 +20,10 @@ import com.simple_shop.gateway.service.auth_service.AuthService;
 
 import reactor.core.publisher.Mono;
 
-/**
- * This filter uses a white list approach, that has the basic assumption, no
- * access-restricted endpoint is located under a public endpoint. All services
- * have to respect that rule and move their access-restricted endpoints to a
- * specific domain or make sure, the white-listing approach doesn't undermine
- * their security.
- */
 @Component
 public final class SessionVerificationFilter implements GlobalFilter, Ordered {
-	private static final Map<HttpMethod, Set<String>> REQUEST_WHITE_LIST = SessionVerificationFilter
-			.collectRequestWhiteList();
+	private static final Map<HttpMethod, Set<String>> SESSION_WHITE_LIST = SessionVerificationFilter
+			.collectSessionWhiteList();
 
 	private static final String COOKIE_NAME = "session_id";
 
@@ -44,15 +37,25 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 		this.authService = authService;
 	}
 
-	private static Map<HttpMethod, Set<String>> collectRequestWhiteList() {
+	/**
+	 * This filter uses a white list approach, that has the basic assumption, no
+	 * access-restricted endpoint is located under a public endpoint. All services
+	 * have to respect that rule and move their access-restricted endpoints to a
+	 * specific domain or make sure, the white-listing approach doesn't undermine
+	 * their security.
+	 *
+	 * @return
+	 */
+	private static Map<HttpMethod, Set<String>> collectSessionWhiteList() {
 		final Map<HttpMethod, Set<String>> whiteList = new HashMap<>();
 
 		final Set<String> getWhiteList = new HashSet<>();
-		getWhiteList.add("/api/items/v1");
+		getWhiteList.add("/api/items/v1/regular");
 		whiteList.put(HttpMethod.GET, getWhiteList);
 
 		final Set<String> postWhiteList = new HashSet<>();
 		postWhiteList.add("/api/auth/v1/user/login");
+		postWhiteList.add("/api/users/v1/regular");
 		whiteList.put(HttpMethod.POST, postWhiteList);
 
 		return whiteList;
@@ -62,12 +65,11 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 	public Mono<Void> filter(final ServerWebExchange exchange, final GatewayFilterChain chain) {
 		final ServerHttpRequest request = exchange.getRequest();
 
-		if (this.isWhiteListedRequest(request)) {
-			return chain.filter(exchange);
-		}
-
 		final HttpCookie sessionCookie = request.getCookies().getFirst(SessionVerificationFilter.COOKIE_NAME);
 		if (sessionCookie == null || sessionCookie.getValue().isBlank()) {
+			if (this.isSessionWhiteListedRequest(request)) {
+				return chain.filter(exchange);
+			}
 			return this.handleUnauthorized(exchange);
 		}
 
@@ -94,9 +96,9 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 		});
 	}
 
-	private boolean isWhiteListedRequest(final ServerHttpRequest request) {
+	private boolean isSessionWhiteListedRequest(final ServerHttpRequest request) {
 		final String path = request.getURI().getPath();
-		final Set<String> publicPaths = SessionVerificationFilter.REQUEST_WHITE_LIST.get(request.getMethod());
+		final Set<String> publicPaths = SessionVerificationFilter.SESSION_WHITE_LIST.get(request.getMethod());
 		if (publicPaths != null) {
 			if (publicPaths.contains(path)) {
 				return Boolean.TRUE;
