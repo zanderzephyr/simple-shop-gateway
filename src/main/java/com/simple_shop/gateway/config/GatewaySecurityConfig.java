@@ -3,6 +3,7 @@ package com.simple_shop.gateway.config;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -32,6 +33,9 @@ import reactor.core.publisher.Mono;
 @Configuration
 @EnableWebFluxSecurity
 public class GatewaySecurityConfig {
+	@Value("${simple-shop.allowed-origin}")
+	private String allowedOrigin;
+
 	public GatewaySecurityConfig() {
 		super();
 	}
@@ -49,10 +53,8 @@ public class GatewaySecurityConfig {
 		/*
 		 * Enables a good-willing browser to never pass responses to a requesting site,
 		 * that is not specifically listed here.
-		 *
-		 * TODO Use an entry in application.properties for that.
 		 */
-		config.setAllowedOrigins(Collections.unmodifiableList(Arrays.asList("http://localhost:4200")));
+		config.setAllowedOrigins(Collections.unmodifiableList(Arrays.asList(this.allowedOrigin)));
 
 		/*
 		 * Allows the browser to send the session cookie and whatever else the future
