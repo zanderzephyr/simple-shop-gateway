@@ -1,26 +1,16 @@
 package com.simple_shop.gateway.filter;
 
-import java.util.Map;
-import java.util.Set;
-
-import org.springframework.http.HttpMethod;
-import org.springframework.http.server.reactive.ServerHttpRequest;
+import java.util.List;
 
 abstract class CommonRequestFilter {
 	public CommonRequestFilter() {
 		super();
 	}
 
-	protected boolean performTest(final Map<HttpMethod, Set<String>> whiteList, final ServerHttpRequest request) {
-		final String path = request.getURI().getPath();
-		final Set<String> publicPaths = whiteList.get(request.getMethod());
-		if (publicPaths != null) {
-			if (publicPaths.contains(path)) {
-				return Boolean.TRUE;
-			}
-
-			for (final String publicPath : publicPaths) {
-				if (path.startsWith(publicPath)) {
+	protected boolean performTest(final String path, final List<String> whiteList) {
+		if (whiteList != null) {
+			for (final String whiteListedPath : whiteList) {
+				if (path.startsWith(whiteListedPath)) {
 					return Boolean.TRUE;
 				}
 			}

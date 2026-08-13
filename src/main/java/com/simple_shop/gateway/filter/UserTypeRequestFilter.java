@@ -1,10 +1,10 @@
 package com.simple_shop.gateway.filter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.function.BiPredicate;
 
 import org.springframework.http.HttpMethod;
@@ -17,68 +17,68 @@ import com.simple_shop.gateway.model.user_service.UserServiceUserType;
  * This filter has to be executed for resources hidden behind the session layer.
  */
 class UserTypeRequestFilter extends CommonRequestFilter implements BiPredicate<UserServiceUserType, ServerHttpRequest> {
-	private static final Map<HttpMethod, Set<String>> ADMIN_WHITE_LIST = UserTypeRequestFilter.collectAdminWhiteList();
-
-	private static final Map<HttpMethod, Set<String>> CUSTOMER_WHITE_LIST = UserTypeRequestFilter
+	private static final Map<HttpMethod, List<String>> CUSTOMER_WHITE_LIST = UserTypeRequestFilter
 			.collectCustomerWhiteList();
+
+	private static final Map<HttpMethod, List<String>> ADMIN_WHITE_LIST = UserTypeRequestFilter.collectAdminWhiteList();
 
 	public UserTypeRequestFilter() {
 		super();
 	}
 
-	private static Map<HttpMethod, Set<String>> collectAdminWhiteList() {
-		final Map<HttpMethod, Set<String>> whiteList = new HashMap<>();
+	private static Map<HttpMethod, List<String>> collectAdminWhiteList() {
+		final Map<HttpMethod, List<String>> whiteList = new HashMap<>();
 
-		for (final Entry<HttpMethod, Set<String>> entry : UserTypeRequestFilter.collectCustomerWhiteList().entrySet()) {
-			whiteList.put(entry.getKey(), new HashSet<>(entry.getValue()));
+		for (final Entry<HttpMethod, List<String>> entry : UserTypeRequestFilter.CUSTOMER_WHITE_LIST.entrySet()) {
+			whiteList.put(entry.getKey(), new ArrayList<>(entry.getValue()));
 		}
 
-		final Set<String> deleteWhiteList = UserTypeRequestFilter.determineOrInit(HttpMethod.DELETE, whiteList);
+		final List<String> deleteWhiteList = UserTypeRequestFilter.determineOrInit(HttpMethod.DELETE, whiteList);
 		deleteWhiteList.add("/api/items/v1/regular/delete-item/");
 		whiteList.put(HttpMethod.DELETE, deleteWhiteList);
 
-		final Set<String> getWhiteList = UserTypeRequestFilter.determineOrInit(HttpMethod.GET, whiteList);
+		final List<String> getWhiteList = UserTypeRequestFilter.determineOrInit(HttpMethod.GET, whiteList);
 		getWhiteList.add("/api/users/v1/regular/get-users");
 		whiteList.put(HttpMethod.GET, getWhiteList);
 
-		final Set<String> postWhiteList = UserTypeRequestFilter.determineOrInit(HttpMethod.POST, whiteList);
+		final List<String> postWhiteList = UserTypeRequestFilter.determineOrInit(HttpMethod.POST, whiteList);
 		postWhiteList.add("/api/items/v1/regular/create-item");
 		whiteList.put(HttpMethod.POST, postWhiteList);
 
-		final Set<String> putWhiteList = UserTypeRequestFilter.determineOrInit(HttpMethod.PUT, whiteList);
+		final List<String> putWhiteList = UserTypeRequestFilter.determineOrInit(HttpMethod.PUT, whiteList);
 		putWhiteList.add("/api/items/v1/regular/modify-item/");
 		whiteList.put(HttpMethod.PUT, putWhiteList);
 
 		return whiteList;
 	}
 
-	private static Set<String> determineOrInit(final HttpMethod httpMethod, final Map<HttpMethod, Set<String>> map) {
-		Set<String> set = map.get(httpMethod);
-		if (set == null) {
-			set = new HashSet<>();
-			map.put(httpMethod, set);
+	private static List<String> determineOrInit(final HttpMethod httpMethod, final Map<HttpMethod, List<String>> map) {
+		List<String> list = map.get(httpMethod);
+		if (list == null) {
+			list = new ArrayList<>();
+			map.put(httpMethod, list);
 		}
-		return set;
+		return list;
 	}
 
-	private static Map<HttpMethod, Set<String>> collectCustomerWhiteList() {
-		final Map<HttpMethod, Set<String>> whiteList = new HashMap<>();
+	private static Map<HttpMethod, List<String>> collectCustomerWhiteList() {
+		final Map<HttpMethod, List<String>> whiteList = new HashMap<>();
 
-		final Set<String> deleteWhiteList = new HashSet<>();
+		final List<String> deleteWhiteList = new ArrayList<>();
 		deleteWhiteList.add("/api/users/v1/regular/delete-user/");
 		whiteList.put(HttpMethod.DELETE, deleteWhiteList);
 
-		final Set<String> getWhiteList = new HashSet<>();
+		final List<String> getWhiteList = new ArrayList<>();
 		getWhiteList.add("/api/users/v1/regular/get-user/");
 		getWhiteList.add("/api/users/v1/regular/get-user-type/");
 		whiteList.put(HttpMethod.GET, getWhiteList);
 
-		final Set<String> postWhiteList = new HashSet<>();
+		final List<String> postWhiteList = new ArrayList<>();
 		postWhiteList.add("/api/auth/v1/user/logout");
 		postWhiteList.add("/api/users/v1/regular/create-user");
 		whiteList.put(HttpMethod.POST, postWhiteList);
 
-		final Set<String> putWhiteList = new HashSet<>();
+		final List<String> putWhiteList = new ArrayList<>();
 		putWhiteList.add("/api/users/v1/regular/modify-user/");
 		whiteList.put(HttpMethod.PUT, putWhiteList);
 
@@ -89,10 +89,14 @@ class UserTypeRequestFilter extends CommonRequestFilter implements BiPredicate<U
 	public boolean test(final UserServiceUserType userType, final ServerHttpRequest request) {
 		final boolean result;
 
+		final HttpMethod httpMethod = request.getMethod();
+		final String path = request.getURI().getPath();
 		if (UserServiceUserType.CUSTOMER.equals(userType)) {
-			result = this.performTest(UserTypeRequestFilter.CUSTOMER_WHITE_LIST, request);
+			final List<String> whiteList = UserTypeRequestFilter.CUSTOMER_WHITE_LIST.get(httpMethod);
+			result = this.performTest(path, whiteList);
 		} else if (UserServiceUserType.ADMIN.equals(userType)) {
-			result = this.performTest(UserTypeRequestFilter.ADMIN_WHITE_LIST, request);
+			final List<String> whiteList = UserTypeRequestFilter.ADMIN_WHITE_LIST.get(httpMethod);
+			result = this.performTest(path, whiteList);
 		} else {
 			result = Boolean.FALSE;
 		}

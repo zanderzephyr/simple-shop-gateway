@@ -1,16 +1,16 @@
 package com.simple_shop.gateway.filter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 
 class NoSessionRequestFilter extends CommonRequestFilter implements Predicate<ServerHttpRequest> {
-	private static final Map<HttpMethod, Set<String>> WHITE_LIST = NoSessionRequestFilter.collectWhiteList();
+	private static final Map<HttpMethod, List<String>> WHITE_LIST = NoSessionRequestFilter.collectWhiteList();
 
 	public NoSessionRequestFilter() {
 		super();
@@ -25,15 +25,15 @@ class NoSessionRequestFilter extends CommonRequestFilter implements Predicate<Se
 	 *
 	 * @return
 	 */
-	private static Map<HttpMethod, Set<String>> collectWhiteList() {
-		final Map<HttpMethod, Set<String>> whiteList = new HashMap<>();
+	private static Map<HttpMethod, List<String>> collectWhiteList() {
+		final Map<HttpMethod, List<String>> whiteList = new HashMap<>();
 
-		final Set<String> getWhiteList = new HashSet<>();
+		final List<String> getWhiteList = new ArrayList<>();
 		getWhiteList.add("/api/items/v1/regular/get-item/");
 		getWhiteList.add("/api/items/v1/regular/get-items");
 		whiteList.put(HttpMethod.GET, getWhiteList);
 
-		final Set<String> postWhiteList = new HashSet<>();
+		final List<String> postWhiteList = new ArrayList<>();
 		postWhiteList.add("/api/auth/v1/user/login");
 		postWhiteList.add("/api/users/v1/regular/create-user");
 		whiteList.put(HttpMethod.POST, postWhiteList);
@@ -43,6 +43,9 @@ class NoSessionRequestFilter extends CommonRequestFilter implements Predicate<Se
 
 	@Override
 	public boolean test(final ServerHttpRequest request) {
-		return this.performTest(NoSessionRequestFilter.WHITE_LIST, request);
+		final HttpMethod httpMethod = request.getMethod();
+		final String path = request.getURI().getPath();
+		final List<String> whiteList = NoSessionRequestFilter.WHITE_LIST.get(httpMethod);
+		return this.performTest(path, whiteList);
 	}
 }
