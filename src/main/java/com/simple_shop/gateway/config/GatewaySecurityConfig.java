@@ -11,6 +11,8 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository;
 import org.springframework.security.web.server.csrf.CsrfToken;
+import org.springframework.security.web.server.csrf.ServerCsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.server.csrf.ServerCsrfTokenRequestHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
@@ -19,6 +21,19 @@ import org.springframework.web.server.WebFilter;
 import reactor.core.publisher.Mono;
 
 /*
+ * The gateway uses non-blocking WebFlux. Spring Security in a reactive
+ * environment is configured using a SecurityWebFilterChain (not
+ * SecurityFilterChain). Its job is to handle CORS and protect the internal
+ * management endpoints (session validation, user type validation, ...) to
+ * ensure unauthorized traffic is blocked at the edge of the backend. The actual
+ * services are synchronous WebMVC applications. They have no Spring Security
+ * enabled so far, as the current approach relies on infrastructure security
+ * instead. If this changes, the configuration should do: Keep CSRF disabled
+ * since the gateway is the public endpoint. Enforce internal service-to-service
+ * requests are allowed. Validate the custom incoming gateway headers exist.
+ * Probably use some sort of encryption for the communication between the
+ * services.
+ *
  * We tackle CSRF attacks by setting a client-readable cookie named XSRF-TOKEN,
  * which clients are expected to copy and send back to us inside a custom HTTP
  * header named X-XSRF-TOKEN. While the browser automatically attaches the
@@ -28,7 +43,8 @@ import reactor.core.publisher.Mono;
  * completely prevents scenarios where a malicious site running in tab B tries
  * to execute a CSRF attack against an active session in tab A; tab B is
  * strictly blocked by the browser's Same-Origin Policy from reading the cookie
- * storage of our domain.
+ * storage of our domain. TODO Better research this. OWASP offers a lot of
+ * high-value information.
  */
 @Configuration
 @EnableWebFluxSecurity
@@ -100,6 +116,9 @@ public class GatewaySecurityConfig {
 					 * non-matching domains to touch CORS config protected contents).
 					 */
 					csrf.csrfTokenRepository(repository);
+
+					final ServerCsrfTokenRequestHandler requestHandler = new ServerCsrfTokenRequestAttributeHandler();
+					csrf.csrfTokenRequestHandler(requestHandler);
 				})//
 				.authorizeExchange(exchanges -> exchanges.anyExchange().permitAll())//
 				.build();
@@ -115,9 +134,8 @@ public class GatewaySecurityConfig {
 		return (exchange, chain) -> {
 			final Mono<CsrfToken> csrfToken = exchange.getAttribute(CsrfToken.class.getName());
 			if (csrfToken != null) {
-				return csrfToken.doOnSuccess(_ -> {
-					// Accessing the token forces Spring to write the cookie to the response stream
-				}).then(chain.filter(exchange));
+				// Accessing the token forces Spring to write the cookie to the response stream
+				return csrfToken.flatMap(_ -> chain.filter(exchange));
 			}
 			return chain.filter(exchange);
 		};
