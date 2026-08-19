@@ -61,6 +61,11 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 		}
 
 		final String sessionId = sessionCookie.getValue();
+
+		/*
+		 * TODO if somebody requests with an old session cookie, we should again test
+		 * with the no session filter before rejecting.
+		 */
 		return this.authService.verifySession(sessionId)
 				.flatMap(verification -> this.processSessionVerification(verification, exchange, chain))
 				.onErrorResume(t -> this.handleServerError(t, exchange));
