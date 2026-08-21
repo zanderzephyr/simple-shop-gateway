@@ -62,10 +62,6 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 
 		final String sessionId = sessionCookie.getValue();
 
-		/*
-		 * TODO if somebody requests with an old session cookie, we should again test
-		 * with the no session filter before rejecting.
-		 */
 		return this.authService.verifySession(sessionId)
 				.flatMap(verification -> this.processSessionVerification(verification, exchange, chain))
 				.onErrorResume(t -> this.handleServerError(t, exchange));
@@ -107,7 +103,14 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 			final ServerWebExchange exchange, //
 			final GatewayFilterChain chain) {
 
-		if (sessionVerification == null || sessionVerification.getSessionData() == null) {
+		if (sessionVerification == null) {
+			return this.handleUnauthorized(exchange);
+		}
+
+		if (sessionVerification.getSessionData() == null) {
+			if (this.noSessionRequestFilter.test(exchange.getRequest())) {
+				return chain.filter(exchange);
+			}
 			return this.handleUnauthorized(exchange);
 		}
 
