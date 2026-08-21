@@ -54,10 +54,10 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 
 		final HttpCookie sessionCookie = request.getCookies().getFirst(SessionVerificationFilter.COOKIE_NAME);
 		if (sessionCookie == null || sessionCookie.getValue().isBlank()) {
-			if (!this.noSessionRequestFilter.test(request)) {
-				return this.handleUnauthorized(exchange);
+			if (this.noSessionRequestFilter.test(request)) {
+				return chain.filter(exchange);
 			}
-			return chain.filter(exchange);
+			return this.handleUnauthorized(exchange);
 		}
 
 		final String sessionId = sessionCookie.getValue();
