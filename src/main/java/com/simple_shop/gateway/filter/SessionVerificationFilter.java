@@ -168,6 +168,6 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 		 * (possibly non-deterministicly). Later additions to the execution ordering of
 		 * this project must create a robust and unambiguous environment.
 		 */
-		return 0;
+		return Ordered.HIGHEST_PRECEDENCE;
 	}
 }
