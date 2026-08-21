@@ -103,10 +103,6 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 			final ServerWebExchange exchange, //
 			final GatewayFilterChain chain) {
 
-		if (sessionVerification == null) {
-			return this.handleUnauthorized(exchange);
-		}
-
 		if (sessionVerification.getSessionData() == null) {
 			if (this.noSessionRequestFilter.test(exchange.getRequest())) {
 				return chain.filter(exchange);
@@ -134,16 +130,17 @@ public final class SessionVerificationFilter implements GlobalFilter, Ordered {
 			final GatewayFilterChain chain) {
 
 		final ServerHttpRequest request = exchange.getRequest();
-		if (userType == null || !this.userTypeRequestFilter.test(userType, request)) {
-			return this.handleUnauthorized(exchange);
+
+		if (this.noSessionRequestFilter.test(request) || this.userTypeRequestFilter.test(userType, request)) {
+			final ServerHttpRequest mutatedRequest = request.mutate()//
+					.header(SessionVerificationFilter.USER_ID_HEADER, userId.toString())//
+					.header(SessionVerificationFilter.USER_TYPE_HEADER, userType.name())//
+					.build();
+
+			return chain.filter(exchange.mutate().request(mutatedRequest).build());
 		}
 
-		final ServerHttpRequest mutatedRequest = request.mutate()//
-				.header(SessionVerificationFilter.USER_ID_HEADER, userId.toString())//
-				.header(SessionVerificationFilter.USER_TYPE_HEADER, userType.name())//
-				.build();
-
-		return chain.filter(exchange.mutate().request(mutatedRequest).build());
+		return this.handleUnauthorized(exchange);
 	}
 
 	/*
