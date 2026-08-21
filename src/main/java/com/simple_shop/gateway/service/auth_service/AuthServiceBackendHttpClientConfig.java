@@ -4,10 +4,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.support.WebClientHttpServiceGroupConfigurer;
+import org.springframework.web.service.registry.HttpServiceGroup.ClientType;
 import org.springframework.web.service.registry.ImportHttpServices;
 
 @Configuration
-@ImportHttpServices(group = "auth-service-group", types = { AuthServiceBackendHttpClient.class })
+@ImportHttpServices(//
+		group = "auth-service-group", //
+		types = { AuthServiceBackendHttpClient.class }, //
+		clientType = ClientType.WEB_CLIENT)
 public class AuthServiceBackendHttpClientConfig {
 	private final String authServiceUrl;
 
