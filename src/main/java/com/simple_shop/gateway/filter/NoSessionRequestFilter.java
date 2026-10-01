@@ -31,6 +31,7 @@ class NoSessionRequestFilter extends CommonRequestFilter implements Predicate<Se
 		final List<String> getWhiteList = new ArrayList<>();
 		getWhiteList.add("/api/items/v1/regular/get-item/");
 		getWhiteList.add("/api/items/v1/regular/get-items");
+		getWhiteList.add("/api/items/v1/images/get-images/");
 		getWhiteList.add("/api/auth/v1/user/me");
 		whiteList.put(HttpMethod.GET, getWhiteList);
 
