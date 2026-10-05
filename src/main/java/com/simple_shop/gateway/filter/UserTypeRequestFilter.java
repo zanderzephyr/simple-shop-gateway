@@ -35,7 +35,6 @@ class UserTypeRequestFilter extends CommonRequestFilter implements BiPredicate<U
 
 		final List<String> deleteWhiteList = UserTypeRequestFilter.determineOrInit(HttpMethod.DELETE, whiteList);
 		deleteWhiteList.add("/api/items/v1/regular/delete-item/");
-		deleteWhiteList.add("/api/items/v1/images/delete-image/");
 		whiteList.put(HttpMethod.DELETE, deleteWhiteList);
 
 		final List<String> getWhiteList = UserTypeRequestFilter.determineOrInit(HttpMethod.GET, whiteList);
@@ -45,6 +44,7 @@ class UserTypeRequestFilter extends CommonRequestFilter implements BiPredicate<U
 		final List<String> postWhiteList = UserTypeRequestFilter.determineOrInit(HttpMethod.POST, whiteList);
 		postWhiteList.add("/api/items/v1/regular/create-item");
 		postWhiteList.add("/api/items/v1/images/confirm-upload/");
+		postWhiteList.add("/api/items/v1/images/delete-image/");
 		postWhiteList.add("/api/items/v1/images/request-image-url/");
 		whiteList.put(HttpMethod.POST, postWhiteList);
 
