@@ -9,5 +9,5 @@ import reactor.core.publisher.Mono;
 @HttpExchange("/api/users/v1")
 interface UserServiceBackendHttpClient {
 	@GetExchange("/regular/get-user-type/{userId}")
-	Mono<String> getUserType(@PathVariable Long userId);
+	Mono<String> getUserType(@PathVariable(name = "userId") Long userId);
 }

@@ -12,5 +12,5 @@ import reactor.core.publisher.Mono;
 interface AuthServiceBackendHttpClient {
 
 	@GetExchange("/verify-session/{sessionId}")
-	Mono<AuthServiceSessionVerificationDto> verifySession(@PathVariable final String sessionId);
+	Mono<AuthServiceSessionVerificationDto> verifySession(@PathVariable(name = "sessionId") final String sessionId);
 }
